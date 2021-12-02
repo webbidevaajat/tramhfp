@@ -38,8 +38,8 @@ link_stats <- function(data_path = "", tidy_path = "", result_path = "", start_t
 
   # read in hfp files
   hfp <- hfp_files %>%
-    purrr::map( ~ read_rds(file.path(tidy_path, .))) %>%
-    purrr::reduce(bind_rows) %>%
+    purrr::map( ~ readr::read_rds(file.path(tidy_path, .))) %>%
+    purrr::reduce(dplyr::bind_rows) %>%
     tibble::as_tibble()
 
   hfp<- hfp %>%
@@ -47,7 +47,7 @@ link_stats <- function(data_path = "", tidy_path = "", result_path = "", start_t
 
   # filter time ----
   hfp <- hfp %>%
-    dplyr::filter(hour(current_time) %in% start_time:end_time)
+    dplyr::filter(lubridate::hour(current_time) %in% start_time:end_time)
 
 
   # sums on links and statistics ---
@@ -76,6 +76,12 @@ link_stats <- function(data_path = "", tidy_path = "", result_path = "", start_t
   hfp_sums <- hfp_sums %>%
     dplyr::mutate(spd_kmh = length_km / dif_h)
 
+  # filter out abnormal speeds
+  hfp_sums <- hfp_sums %>%
+    dplyr::filter(spd_kmh > 1 & spd_kmh < 80)
+
+  # filter based on IQR of time
+
   hfp_sums <- hfp_sums %>%
     dplyr::group_by(link_id) %>%
     dplyr::group_modify(~ check_filter(.x)) %>%
@@ -90,9 +96,9 @@ link_stats <- function(data_path = "", tidy_path = "", result_path = "", start_t
   vc0 <- paste0("vc_", tp_name)
   min0 <- paste0("min_", tp_name)
   max0 <- paste0("max_", tp_name)
-  n0 <- paste0("sd_", tp_name)
-  l0 <- paste0("sd_", tp_name)
-  del0 <- paste0("sd_", tp_name)
+  n0 <- paste0("n_", tp_name)
+  l0 <- paste0("l_", tp_name)
+  del0 <- paste0("del_", tp_name)
 
   # sums to links day
   id_stats <- hfp_sums %>%
@@ -120,9 +126,18 @@ link_stats <- function(data_path = "", tidy_path = "", result_path = "", start_t
     dplyr::left_join(id_stats, by = c("link_id" = "link_id")) %>%
     dplyr::left_join(id_stats_meta, by = c("link_id" = "link_id"))
 
+
   # write to file ----
-  links %>%
-    sf::st_write(
-      file.path(result_path, links_times_shp),
-      delete_dsn = TRUE)
+  path_to_write <- file.path(result_path, links_times_shp)
+  if (file.exists(path_to_write)) {
+    links %>%
+      sf::st_write(
+        file.path(result_path, links_times_shp),
+        delete_dsn = TRUE)
+  } else {
+    links %>%
+      sf::st_write(
+        file.path(result_path, links_times_shp))
+  }
+
 }
