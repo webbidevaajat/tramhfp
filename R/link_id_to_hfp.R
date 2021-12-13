@@ -27,18 +27,16 @@ hfp_sf_operations<- function(hfp_temp, links_temp, links_routes_temp, oday_temp,
 
   # spatial hfp ----
 
+  # convert links to same crs
+  links_temp <- links_temp %>%
+    st_transform(3132)
+
   # convert to spatial data
-  hfp_c <- hfp_temp %>%
-    dplyr::select("long", "lat") %>%
-    as.matrix %>%
-    sf::st_multipoint() %>%
-    sf::st_sfc(crs = 4326) %>%
-    sf::st_transform(3132) %>%
-    sf::st_cast("POINT")
-
-  hfp_temp <- sf::st_sf(hfp_temp, hfp_c)
-
-  rm(hfp_c)
+  hfp_temp <- hfp_temp %>%
+    drop_na("lat", "long") %>%
+    st_as_sf(coords = c("long", "lat")) %>%
+    st_set_crs(4326) %>%
+    st_transform(3132)
 
   # clean hfp points to far away from lines
   hfp_temp <- hfp_temp[sf::st_buffer(links_temp, 30), ]
