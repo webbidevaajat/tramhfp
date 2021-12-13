@@ -27,6 +27,10 @@ hfp_sf_operations<- function(hfp_temp, links_temp, links_routes_temp, oday_temp,
 
   # spatial hfp ----
 
+  # convert links to same crs
+  links_temp <- links_temp %>%
+    st_transform(3132)
+
   # convert to spatial data
   hfp_temp <- hfp_temp %>%
     drop_na("lat", "long") %>%
