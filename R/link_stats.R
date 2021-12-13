@@ -43,7 +43,7 @@ link_stats <- function(data_path = "", tidy_path = "", result_path = "", start_t
     tibble::as_tibble()
 
   hfp<- hfp %>%
-    dplyr::select(link_id, oday, start_time_date, route, dir, current_time, lat, long)
+    dplyr::select(link_id, oday, start_time_date, route, dir, current_time)
 
   # filter time ----
   hfp <- hfp %>%
