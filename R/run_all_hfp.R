@@ -13,7 +13,8 @@ run_all_hfp <- function(data_path = "", tidy_path = "", result_path = "", routes
     result_path <- choose.dir(caption = "Choose directory of result files")
   }
   # Tidy data
-  tidy_hfp(data_path = data_path, tidy_path = tidy_path, routes_to_keep = routes_to_keep, links_routes = links_routes)
+  tidy_hfp(data_path = data_path, tidy_path = tidy_path, routes_to_keep = routes_to_keep,
+           links_shp = links_shp, links_routes = links_routes)
 
   # Statistics
   link_stats(data_path = data_path, tidy_path = tidy_path, result_path = result_path, start_time = start_time, end_time = end_time,
