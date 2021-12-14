@@ -17,23 +17,68 @@ check_filter <- function(temp){
 }
 
 
+#' Results from tidy HFP data
+#' @description Result shapefile from tidy HFP data
+#'
+#' @param data_path pathname of original data files, "" by default (graphical interface)
+#' @param tidy_path pathname of tidy HFP files, "" by default (graphical interface)
+#' @param result_path pathname where to write result shapefile, "" by default (graphical interface)
+#' @param start_time starting hour, 6 by default
+#' @param end_time ending hour (for example 16 => 16:59 last accepted), 19 by default
+#' @param tp_name character suffix to result file variables, "vrk" by default
+#' @param links_shp filename of links data in data_path, "links.shp" by default
+#' @param result_filename filename of result shapefile in result_path, "links_times.shp" by default
+#' @examples
+#' link_stats()
+#' link_stats(start_time = 7, end_time = 9, result_filename = "result.shp")
+#'
 link_stats <- function(data_path = "", tidy_path = "", result_path = "", start_time = 6, end_time = 19,
-                       tp_name = "vrk", links_shp = "links.shp", links_times_shp = "links_times.shp") {
+                       tp_name = "vrk", links_shp = "links.shp", result_filename = "links_times.shp") {
+
+  if (start_time != as.integer(start_time)) {
+    stop("Error: start_time should be integer!")
+  }
+  if (end_time != as.integer(end_time)) {
+    stop("Error: end_time should be integer!")
+  }
+  if (end_time < start_time) {
+    stop("Error: end_time can't be smaller than start time!")
+  }
+  if (start_time < 0 || end_time > 24) {
+    stop("Error: start_time and end_time should be between 0 and 24")
+  }
 
   if (data_path == "") {
     data_path <- choose.dir(caption = "Choose directory of original data files")
   }
+  if (is.na(data_path)) {
+    stop("Error: missing parameter (data_path)!")
+  }
   if (tidy_path == "") {
     tidy_path <- choose.dir(caption = "Choose directory of tidy files")
+  }
+  if (is.na(tidy_path)) {
+    stop("Error: missing parameter (tidy_path!)")
   }
   if (result_path == "") {
     result_path <- choose.dir(caption = "Choose directory of result files")
   }
+  if (is.na(result_path)) {
+    stop("Error: missing parameter (result_path!)")
+  }
+  if (!dir.exists(result_path)) {
+    stop("Error: directory ", result_path, " doesn't exist")
+  }
 
   # load  ---
   hfp_files <- dir(tidy_path, pattern = ".rds")
-
+  if (length(hfp_files) < 1) {
+    stop("Error: no tidy files found in ", tidy_path,"!")
+  }
   links_path <- file.path(data_path, links_shp)
+  if (!file.exists(links_path)) {
+    stop(paste0(links_path, " doesn't exist!"))
+  }
   links <- sf::st_read(links_path)
 
   # read in hfp files
@@ -42,8 +87,16 @@ link_stats <- function(data_path = "", tidy_path = "", result_path = "", start_t
     purrr::reduce(dplyr::bind_rows) %>%
     tibble::as_tibble()
 
-  hfp<- hfp %>%
-    dplyr::select(link_id, oday, start_time_date, route, dir, current_time)
+  tryCatch(
+    {
+      hfp <- hfp %>% dplyr::select(link_id, oday, start_time_date, route, dir, current_time)
+    },
+    error=function(cond) {
+      message("Error: missing columns in tidy data!")
+      message(cond)
+      return(NA)
+    }
+  )
 
   # filter time ----
   hfp <- hfp %>%
@@ -128,16 +181,16 @@ link_stats <- function(data_path = "", tidy_path = "", result_path = "", start_t
 
 
   # write to file ----
-  path_to_write <- file.path(result_path, links_times_shp)
+  path_to_write <- file.path(result_path, result_filename)
   if (file.exists(path_to_write)) {
     links %>%
       sf::st_write(
-        file.path(result_path, links_times_shp),
+        file.path(result_path, result_filename),
         delete_dsn = TRUE)
   } else {
     links %>%
       sf::st_write(
-        file.path(result_path, links_times_shp))
+        file.path(result_path, result_filename))
   }
 
 }

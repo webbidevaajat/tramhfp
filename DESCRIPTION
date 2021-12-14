@@ -1,7 +1,7 @@
 Package: tramhfp
 Type: Package
 Title: Tidy HFP tram data and link statistics to shapefiles.
-Version: 0.1.1
+Version: 0.1.2
 Author: Juhani Mutikainen
 Maintainer: Juhani Mutikainen <firstname.lastname@wsp.com>
 Description: Functions for HFP tram data, link data required as well.
@@ -10,3 +10,4 @@ License: Unlimited
 Encoding: UTF-8
 LazyData: true
 Imports: dplyr, lubridate, tibble, tidyr, readr, sf, assertr, purrr
+RoxygenNote: 7.1.2

@@ -1,7 +1,7 @@
 # function definitions ---
 
 #' Clean HFP data files
-#' Removes outliers and selects variables needed in analysis
+#' @description Removes outliers and selects variables needed in analysis
 #'
 #' @param hfp_temp DATAFRAME that contains HFP 2.0 data
 #' @param stop_times BOOLEAN true if stop times are kept in data
@@ -67,29 +67,64 @@ clean_hfp_sf <- function(hfp_temp, stop_times = TRUE){
 }
 
 
+#' Tidy HFP data files from raw data
+#' @description User interface for using functions clean_hfp_sf() and hfp_to_links_run()
+#'
+#' @param data_path pathname of original data files, "" by default (graphical interface)
+#' @param tidy_path pathname where to write tidy HFP files, "" by default (graphical interface)
+#' @param routes_to_keep character vector of selected routes, "" by default
+#' @param links_shp filename of links data in data_path, "links.shp" by default
+#' @param links_routes filename of route data in data_path, "links_routes.csv" by default
+#' @examples
+#' tidy_hfp()
+#' tidy_hfp(routes_to_keep = c("1001", "1002"), links_shp = "example.shp")
+#'
 tidy_hfp <- function(data_path = "", tidy_path = "", routes_to_keep = "", links_shp = "links.shp", links_routes = "links_routes.csv") {
   # choose folders
   if (data_path == "") {
     data_path <- choose.dir(caption = "Choose directory of data files")
   }
+  if (is.na(data_path)) {
+    stop("Error: missing parameter (data_path)!")
+  }
   if (tidy_path == "") {
     tidy_path <- choose.dir(caption = "Choose directory of tidy files")
+  }
+  if (is.na(tidy_path)) {
+    stop("Error: missing parameter (tidy_path!)")
   }
   #read link files
   message("Reading links.shp")
   links_path <- file.path(data_path, links_shp)
+  if (!file.exists(links_path)) {
+    stop(paste0(links_path, " doesn't exist!"))
+  }
   links <- sf::st_read(links_path)
   message("Reading links_routes.csv")
   routes_path <- file.path(data_path, links_routes)
+  if (!file.exists(routes_path)) {
+    stop(paste0(routes_path, " doesn't exist!"))
+  }
   links_routes <- readr::read_csv(routes_path)
   message("Starting the tidying process")
 
   # loop over hfp data files
   data_files <- dir(data_path, pattern = ".rds")
   first_read <- TRUE
+  message(data_files)
   for (j in data_files){
     df <- readr::read_rds(file.path(data_path, j))
     hfp <- tibble::as_tibble(df)
+    tryCatch(
+      {
+        hfp %>% dplyr::select(route, dir, start, tst, lat, long, drst, oday)
+      },
+      error=function(cond) {
+        message("Error: missing columns in HFP data! (", j,")")
+        message(cond)
+        return(NA)
+      }
+    )
     hfp <- clean_hfp_sf(hfp)
 
     # store all data to one tibble
@@ -103,16 +138,19 @@ tidy_hfp <- function(data_path = "", tidy_path = "", routes_to_keep = "", links_
     message(basename(j), " is ready")
   }
   if (routes_to_keep != "") {
+    if (!any(routes_to_keep %in% data$route)) {
+      stop(paste0("Routes ", routes_to_keep, " not in data!"))
+    }
     data <- data %>% dplyr::filter(route %in% routes_to_keep)
   }
   #link id to hfp
   message("Link id to HFP starting")
-  data <- hfp_to_links_run_mc(data, links, links_routes)
+  data <- hfp_to_links_run(data, links, links_routes)
   message("Link id to HFP ready")
 
   #write file for each route
   for (i in unique(data$route)) {
-    data %>% dplyr::filter(route == i) %>% readr::write_rds(file.path(tidy_path, paste0(i, '.rds')))
+    data %>% dplyr::filter(route == i) %>% readr::write_rds(file.path(tidy_path, paste0(i, '_tidy.rds')))
   }
 
   message("Finished with all files!")

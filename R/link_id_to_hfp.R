@@ -3,13 +3,12 @@
 #' Attach link id to HFP rows
 #'
 #' @param hfp_temp HFP dataframe
-#' @param links_temp
-#' @param oday_temp
-#' @param dir_temp
+#' @param links_temp SPATIAL DATAFRAME which contains links and link_id field
+#' @param oday_temp operating day
+#' @param dir_temp direction
 #'
 #' @return HFP dataframe
 #'
-#' @examples
 hfp_sf_operations<- function(hfp_temp, links_temp, links_routes_temp, oday_temp, dir_temp){
 
   # filter hfp of selected operating day and direction
@@ -29,17 +28,17 @@ hfp_sf_operations<- function(hfp_temp, links_temp, links_routes_temp, oday_temp,
 
   # convert links to same crs
   links_temp <- links_temp %>%
-    st_transform(3132)
+    sf::st_transform(3132)
 
   # convert to spatial data
   hfp_temp <- hfp_temp %>%
-    drop_na("lat", "long") %>%
-    st_as_sf(coords = c("long", "lat")) %>%
-    st_set_crs(4326) %>%
-    st_transform(3132)
+    tidyr::drop_na("lat", "long") %>%
+    sf::st_as_sf(coords = c("long", "lat")) %>%
+    sf::st_set_crs(4326) %>%
+    sf::st_transform(3132)
 
   # clean hfp points to far away from lines
-  hfp_temp <- hfp_temp[sf::st_buffer(links_temp, 30), ]
+  hfp_temp <- hfp_temp[sf::st_buffer(links_temp, 50), ]
 
   # nearest points d1 and d2
   index <- sf::st_nearest_feature(hfp_temp, links_temp)
@@ -47,7 +46,6 @@ hfp_sf_operations<- function(hfp_temp, links_temp, links_routes_temp, oday_temp,
     dplyr::slice(index) %>%
     dplyr::select("link_id")
   sf::st_geometry(ids) <- NULL
-  #print(ids)
   hfp_temp$link_id <- ids$link_id
 
   sf::st_geometry(hfp_temp) <- NULL
@@ -55,10 +53,9 @@ hfp_sf_operations<- function(hfp_temp, links_temp, links_routes_temp, oday_temp,
   return(hfp_temp)
 }
 
-# run multicore points to lines ----
+# run points to lines ----
 
-#' Run points to links operations using multiple cores
-#' Send separate day to each core
+#' Run points to links operations
 #'
 #' @param hfp_temp DATAFRAME which contains cleaned HFP data file
 #' @param links_temp SPATIAL DATAFRAME which contains links and link_id field
@@ -66,7 +63,7 @@ hfp_sf_operations<- function(hfp_temp, links_temp, links_routes_temp, oday_temp,
 #'
 #' @return HFP dataframe that has link_id attached as new column
 #'
-hfp_to_links_run_mc <- function(hfp_temp, links_temp, links_routes_temp){
+hfp_to_links_run <- function(hfp_temp, links_temp, links_routes_temp){
 
   # set direction_id same as in hfp
   if (min(links_routes_temp$dir_id) == 0){
