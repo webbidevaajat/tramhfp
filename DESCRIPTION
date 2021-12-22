@@ -1,7 +1,7 @@
 Package: tramhfp
 Type: Package
 Title: Tidy HFP tram data and link statistics to shapefiles.
-Version: 0.1.2
+Version: 0.1.3
 Author: Juhani Mutikainen
 Maintainer: Juhani Mutikainen <firstname.lastname@wsp.com>
 Description: Functions for HFP tram data, link data required as well.

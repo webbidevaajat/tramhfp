@@ -2,13 +2,13 @@
 # filter based on IQR of time ----
 check_filter <- function(temp){
   temp <- temp %>%
-    dplyr::mutate(median_s = median(dif_s),
-           q1_s = quantile(dif_s, 0.25),
-           q3_s = quantile(dif_s, 0.75),
-           iqr_s = IQR(dif_s)
+    dplyr::mutate(median_s = median(spd_kmh),
+           q1_s = quantile(spd_kmh, 0.25),
+           q3_s = quantile(spd_kmh, 0.75),
+           iqr_s = IQR(spd_kmh)
     ) %>%
-    dplyr::filter(dif_s > q1_s - 1.5 * iqr_s) %>%
-    dplyr::filter(dif_s < q3_s + 1.5 * iqr_s)
+    dplyr::filter(spd_kmh > q1_s - 1.5 * iqr_s) %>%
+    dplyr::filter(spd_kmh < q3_s + 1.5 * iqr_s)
 
   temp <- temp %>%
     dplyr::select(-median_s, -q1_s, -q3_s, -iqr_s)
