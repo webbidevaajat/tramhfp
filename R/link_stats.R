@@ -23,28 +23,28 @@ check_filter <- function(temp){
 #' @param data_path pathname of original data files, "" by default (graphical interface)
 #' @param tidy_path pathname of tidy HFP files, "" by default (graphical interface)
 #' @param result_path pathname where to write result shapefile, "" by default (graphical interface)
-#' @param start_time starting hour, 6 by default
-#' @param end_time ending hour (for example 16 => 16:59 last accepted), 19 by default
+#' @param start_time earliest accepted time of observations for each link in HH:MM format
+#' @param end_time earliest time of observations NOT accepted for each link in HH:MM format
 #' @param tp_name character suffix to result file variables, "vrk" by default
 #' @param links_shp filename of links data in data_path, "links.shp" by default
 #' @param result_filename filename of result shapefile in result_path, "links_times.shp" by default
 #' @examples
 #' link_stats()
-#' link_stats(start_time = 7, end_time = 9, result_filename = "result.shp")
+#' link_stats(start_time = "07:00", end_time = "09:00", result_filename = "result.shp")
 #'
-link_stats <- function(data_path = "", tidy_path = "", result_path = "", start_time = 6, end_time = 19,
+link_stats <- function(data_path = "", tidy_path = "", result_path = "", start_time = "6:00", end_time = "19:00",
                        tp_name = "vrk", links_shp = "links.shp", result_filename = "links_times.shp") {
 
-  if (start_time != as.integer(start_time)) {
-    stop("Error: start_time should be integer!")
+  if (is.na(lubridate::hm(start_time))) {
+    stop("Error: start_time should be in 'HH:MM' format!")
   }
-  if (end_time != as.integer(end_time)) {
-    stop("Error: end_time should be integer!")
+  if (is.na(lubridate::hm(end_time))) {
+    stop("Error: end_time should be in 'HH:MM' format!")
   }
-  if (end_time < start_time) {
-    stop("Error: end_time can't be smaller than start time!")
+  if (lubridate::hm(end_time) <= lubridate::hm(start_time)) {
+    stop("Error: end_time must be later than start time!")
   }
-  if (start_time < 0 || end_time > 24) {
+  if (lubridate::hour(lubridate::hm(start_time)) < 0 || lubridate::hour(lubridate::hm(start_time)) > 24) {
     stop("Error: start_time and end_time should be between 0 and 24")
   }
 
@@ -98,11 +98,6 @@ link_stats <- function(data_path = "", tidy_path = "", result_path = "", start_t
     }
   )
 
-  # filter time ----
-  hfp <- hfp %>%
-    dplyr::filter(lubridate::hour(current_time) %in% start_time:end_time)
-
-
   # sums on links and statistics ---
   hfp_sums <- hfp %>%
     dplyr::group_by(link_id, oday, start_time_date) %>%
@@ -118,6 +113,11 @@ link_stats <- function(data_path = "", tidy_path = "", result_path = "", start_t
       dif_h = as.numeric( difftime(maxtst, mintst, units = "secs") ) / 3600
     ) %>%
     dplyr::ungroup()
+
+  # filter time for each link (min and max inside desired time period) ----
+  hfp_sums <- hfp_sums %>%
+    dplyr::filter(3600*lubridate::hour(mintst)+60*lubridate::minute(mintst) >= as.numeric(lubridate::hm(start_time))) %>%
+    dplyr::filter(3600*lubridate::hour(maxtst)+60*lubridate::minute(maxtst) < as.numeric(lubridate::hm(end_time)))
 
   # attach link length and calc speeds ----
   links <- links %>%
