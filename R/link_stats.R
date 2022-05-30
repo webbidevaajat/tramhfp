@@ -32,7 +32,7 @@ check_filter <- function(temp){
 #' link_stats()
 #' link_stats(start_time = "07:00", end_time = "09:00", result_filename = "result.shp")
 #'
-link_stats <- function(data_path = "", tidy_path = "", result_path = "", start_time = "6:00", end_time = "19:00",
+link_stats <- function(data_path = "", tidy_path = "", result_path = "", start_time = "06:00", end_time = "19:00",
                        tp_name = "vrk", links_shp = "links.shp", result_filename = "links_times.shp") {
 
   if (is.na(lubridate::hm(start_time))) {
