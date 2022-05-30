@@ -152,6 +152,7 @@ link_stats <- function(data_path = "", tidy_path = "", result_path = "", start_t
   n0 <- paste0("n_", tp_name)
   l0 <- paste0("l_", tp_name)
   del0 <- paste0("del_", tp_name)
+  dur0 <- paste0("dur_", tp_name)
 
   # sums to links day
   id_stats <- hfp_sums %>%
@@ -165,7 +166,8 @@ link_stats <- function(data_path = "", tidy_path = "", result_path = "", start_t
       !!max0 := quantile(spd_kmh, 0.975, na.rm = TRUE),
       !!n0 := length(spd_kmh),
       !!l0 := mean(length_km, na.rm = TRUE),
-      !!del0 :=  -3600*(!!rlang::sym(l0)/!!rlang::sym(max0)-!!rlang::sym(l0)/!!rlang::sym(md0))
+      !!del0 :=  -3600*(!!rlang::sym(l0)/!!rlang::sym(max0)-!!rlang::sym(l0)/!!rlang::sym(md0)),
+      !!dur0 := median(dif_s, na.rm = TRUE)
     )
 
   id_stats_meta<- hfp_sums %>%
