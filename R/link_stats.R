@@ -89,7 +89,7 @@ link_stats <- function(data_path = "", tidy_path = "", result_path = "", start_t
 
   tryCatch(
     {
-      hfp <- hfp %>% dplyr::select(link_id, oday, start_time_date, route, dir, current_time)
+      hfp <- hfp %>% dplyr::select(link_id, oday, start_time_date, route, dir, current_time, stop, spd)
     },
     error=function(cond) {
       message("Error: missing columns in tidy data!")
@@ -104,7 +104,9 @@ link_stats <- function(data_path = "", tidy_path = "", result_path = "", start_t
     dplyr::summarise(
       maxtst = max(current_time),
       mintst = min(current_time),
-      no_points = length(route)
+      no_points = length(route),
+      time_stopped = length(route[spd < 0.1 & is.na(stop)]),
+      has_stopped = time_stopped > 2
     ) %>%
     dplyr::filter(no_points > 1) %>%
     dplyr::mutate(
@@ -153,6 +155,8 @@ link_stats <- function(data_path = "", tidy_path = "", result_path = "", start_t
   l0 <- paste0("l_", tp_name)
   del0 <- paste0("del_", tp_name)
   dur0 <- paste0("dur_", tp_name)
+  stopped_time0 <- paste0("stopt_", tp_name)
+  stopped_share0 <- paste0("stopp_", tp_name)
 
   # sums to links day
   id_stats <- hfp_sums %>%
@@ -167,7 +171,9 @@ link_stats <- function(data_path = "", tidy_path = "", result_path = "", start_t
       !!n0 := length(spd_kmh),
       !!l0 := mean(length_km, na.rm = TRUE),
       !!del0 :=  -3600*(!!rlang::sym(l0)/!!rlang::sym(max0)-!!rlang::sym(l0)/!!rlang::sym(md0)),
-      !!dur0 := median(dif_s, na.rm = TRUE)
+      !!dur0 := median(dif_s, na.rm = TRUE),
+      !!stopped_time0 := mean(time_stopped, na.rm = TRUE),
+      !!stopped_share0 := sum(has_stopped, na.rm = T) / length(has_stopped)
     )
 
   id_stats_meta<- hfp_sums %>%

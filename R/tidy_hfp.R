@@ -28,8 +28,12 @@ clean_hfp_sf <- function(hfp_temp, stop_times = TRUE){
       # WGS 84 longitude in degrees. null if there is no GPS fix.
       drst,
       # Door status. 0 if all the doors are closed, 1 if any of the doors are open.
-      oday
+      oday,
       # Operating day of the trip.
+      stop,
+      # ID of the stop related to the event. NA if not at any stop.
+      spd
+      # Speed of the vehicle, in meters per second (m/s).
     )
 
   # filter out points if location is unavailable ----
@@ -111,13 +115,13 @@ tidy_hfp <- function(data_path = "", tidy_path = "", routes_to_keep = "", links_
   # loop over hfp data files
   data_files <- dir(data_path, pattern = ".rds")
   first_read <- TRUE
-  message(data_files)
+  message("Files to read: ", paste(data_files, collapse = ", "))
   for (j in data_files){
     df <- readr::read_rds(file.path(data_path, j))
     hfp <- tibble::as_tibble(df)
     tryCatch(
       {
-        hfp %>% dplyr::select(route, dir, start, tst, lat, long, drst, oday)
+        hfp %>% dplyr::select(route, dir, start, tst, lat, long, drst, oday, stop, spd)
       },
       error=function(cond) {
         message("Error: missing columns in HFP data! (", j,")")
